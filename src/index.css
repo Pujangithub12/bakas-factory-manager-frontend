@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+
+  --color-page: #f2f2ee;
+  --color-card: #fcfbf8;
+
+  /* Brand brown, the same as the phone app (#744820). */
+  --color-brand-50: #faf5ee;
+  --color-brand-100: #f2e6d8;
+  --color-brand-200: #e4cdb0;
+  --color-brand-300: #d1ac82;
+  --color-brand-400: #bb8855;
+  --color-brand-500: #9a6a35;
+  --color-brand-600: #86592a;
+  --color-brand-700: #744820;
+  --color-brand-800: #5c3919;
+  --color-brand-900: #452b14;
+  --color-brand-950: #2a1a0b;
+}
+
+@layer base {
+  body { background: var(--color-page); }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.01em; }
+  h1 { font-size: 2.25rem; line-height: 1; }
+  h2 { font-size: 1.35rem; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0 !important; }
+}
