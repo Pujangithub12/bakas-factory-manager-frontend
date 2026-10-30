@@ -4,7 +4,7 @@ import { useAuth } from "../lib/auth";
 import { ROLE_BLURB, SIGN_IN_FOOTER, SIGN_IN_ROLES } from "../lib/roles";
 import { Button, ErrorText, Field, Logo, PinPad } from "../components/ui";
 
-type Person = { id: string; full_name: string; role: string | null };
+type Person = { id: string; full_name: string; role: string | null; roles: string[] };
 const PIN_LENGTH = 6;
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
 const weak = (pin: string) => "0123456789".includes(pin) || "9876543210".includes(pin);
@@ -25,13 +25,23 @@ const Shell = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
-/** Sign in: the first run creates the one Owner; after that pick a role, then enter the 6-digit PIN. */
+/** Sign in: the first run creates the one Owner; after that pick a role, then your name, then enter the 6-digit PIN. */
 export default function Login() {
-  const { signInRole, setupOwner } = useAuth();
-  const [mode, setMode] = useState<"loading" | "setup" | "pick" | "pin">("loading");
+  const { signIn, setupOwner } = useAuth();
+  const [mode, setMode] = useState<"loading" | "setup" | "pick" | "people" | "pin">("loading");
   const [counts, setCounts] = useState<{ role: string; count: number }[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
   const [pick, setPick] = useState<string | null>(null);
+  const [person, setPerson] = useState<Person | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const refreshPeople = async () => {
+    try {
+      setPeople(await api<Person[]>("/auth/people"));
+    } catch {
+      // keep the list we already have
+    }
+  };
 
   const load = async () => {
     setMode("loading");
@@ -40,6 +50,7 @@ export default function Login() {
       const status = await api<{ setup_needed: boolean }>("/auth/status");
       if (status.setup_needed) return setMode("setup");
       setCounts((await api<{ roles: { role: string; count: number }[] }>("/auth/roles")).roles);
+      await refreshPeople();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not reach the server");
     }
@@ -50,8 +61,34 @@ export default function Login() {
   if (mode === "loading") return <Shell><p className="text-center text-slate-500">Connecting...</p></Shell>;
   if (mode === "setup") return <OwnerSetup onDone={setupOwner} />;
 
-  if (mode === "pin" && pick) {
-    return <PinScreen name={pick} onBack={() => { setPick(null); setMode("pick"); }} onPin={(pin) => signInRole(pick, pin).then(() => undefined)} />;
+  if (mode === "pin" && pick && person) {
+    return <PinScreen name={person.full_name} onBack={() => { setPerson(null); setMode("people"); }} onPin={(pin) => signIn(person.id, pin).then(() => undefined)} />;
+  }
+
+  if (mode === "people" && pick) {
+    const list = people.filter((p) => (p.roles ?? []).includes(pick));
+    return (
+      <Shell>
+        <div className="h-8">
+          <button onClick={() => { setPick(null); setMode("pick"); }} className="flex items-center gap-1 text-lg font-semibold text-slate-800">‹ Back</button>
+        </div>
+        <div>
+          <h1 className="font-bold">{pick}</h1>
+          <p className="mt-1 text-lg text-slate-500">Who are you?</p>
+        </div>
+        <div className="space-y-3">
+          {list.map((p) => (
+            <button key={p.id} onClick={() => { setPerson(p); setMode("pin"); }} className="flex w-full items-center gap-4 rounded-2xl border border-[#d9d5cc] bg-card p-4 text-left shadow-sm transition hover:border-brand-600">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#d9d5cc] bg-brand-100 font-display text-xl font-bold text-brand-700">{initials(p.full_name).slice(0, 1)}</span>
+              <span className="min-w-0 flex-1 text-lg font-semibold">{p.full_name}</span>
+            </button>
+          ))}
+          {list.length === 0 ? (
+            <p className="text-sm leading-5 text-slate-500">No one with this role has a PIN yet. Ask the Owner or a Manager to add you and set your PIN in Users &amp; Roles.</p>
+          ) : null}
+        </div>
+      </Shell>
+    );
   }
 
   return (
@@ -65,7 +102,7 @@ export default function Login() {
         {SIGN_IN_ROLES.map((role) => {
           const empty = counts.length > 0 && (counts.find((c) => c.role === role)?.count ?? 0) === 0;
           return (
-            <button key={role} onClick={() => { setPick(role); setMode("pin"); }} className={`flex w-full items-center gap-4 rounded-2xl border border-[#d9d5cc] bg-card p-4 text-left shadow-sm transition hover:border-brand-600 ${empty ? "opacity-55" : ""}`}>
+            <button key={role} onClick={() => { setPick(role); setMode("people"); refreshPeople(); }} className={`flex w-full items-center gap-4 rounded-2xl border border-[#d9d5cc] bg-card p-4 text-left shadow-sm transition hover:border-brand-600 ${empty ? "opacity-55" : ""}`}>
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-100 font-display text-xl font-bold text-brand-700">{role[0]}</span>
               <span className="min-w-0 flex-1">
                 <span className="block text-lg font-semibold">{role}</span>

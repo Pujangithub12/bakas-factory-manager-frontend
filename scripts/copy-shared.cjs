@@ -2,7 +2,7 @@
 // Edit them there. This runs automatically before dev and build.
 const fs = require("fs");
 const path = require("path");
-const from = path.join(__dirname, "..", "..", "mobile", "src");
+const from = path.join(__dirname, "..", "..", "bakas-factory-manager-mobile", "src");
 const to = path.join(__dirname, "..", "src", "shared");
 fs.mkdirSync(to, { recursive: true });
 const banner = "// COPIED from mobile/src by scripts/copy-shared.cjs. Do not edit here.\n";
