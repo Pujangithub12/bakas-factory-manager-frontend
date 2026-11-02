@@ -15,6 +15,8 @@ import Crew from "./pages/Crew";
 import Jobs from "./pages/Jobs";
 import Setup from "./pages/Setup";
 import Users from "./pages/Users";
+import MyVehicle from "./pages/MyVehicle";
+import MyMachines from "./pages/MyMachines";
 
 const MGMT = ["Owner", "Manager", "Supervisor"];
 const PAGES = [
@@ -26,6 +28,8 @@ const PAGES = [
   { path: "/gate", label: "Gate register", roles: ["Security", ...MGMT], el: <Gate /> },
   { path: "/crew", label: "Shift & crew", roles: MGMT, el: <Crew /> },
   { path: "/jobs", label: "Maintenance jobs", roles: ["Fitter", ...MGMT], el: <Jobs /> },
+  { path: "/my-machines", label: "My machines", roles: ["Operator"], el: <MyMachines /> },
+  { path: "/my-vehicle", label: "My vehicle", roles: ["Driver"], el: <MyVehicle /> },
   { path: "/users", label: "Users & roles", roles: ["Owner", "Manager"], el: <Users /> },
   { path: "/setup", label: "Setup lists", roles: ["Owner", "Manager"], el: <Setup /> },
 ];

@@ -19,6 +19,7 @@ const TABLES = [
   "person", "person_role", "operator_machine", "shift", "attendance", "shift_in_charge", "machine", "stop_reason", "log_field", "machine_run",
   "run_helper", "prestart_answer", "run_bypass", "downtime", "log_reading", "greasing_check", "bag_count", "maintenance_job", "material",
   "supplier", "buyer", "yard", "yard_batch", "weigh_ticket", "opening_stock",
+  "vehicle", "driver_vehicle", "vehicle_session", "diesel_fill",
 ];
 const EMPTY: Data = Object.fromEntries(TABLES.map((t) => [t, []]));
 
