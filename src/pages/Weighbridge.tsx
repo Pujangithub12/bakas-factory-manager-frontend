@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useData } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { newId, push } from "../lib/api";
-import { truckIn, truckOut, weighOut, stopFilling } from "../lib/flows";
+import { truckIn, truckOut, weighOut, stopFilling, countBags, lastBagCountTo } from "../lib/flows";
 import { Badge, Button, Card, ErrorText, Field, Modal, PageHeader, Select, Table, TextArea, Td, useRun } from "../components/ui";
 import { DAY, kgFmt } from "../lib/util";
 import { activeBatch, batchCode, batchMaterial, batchTickets, nextChallan, num, suggestYard, ticketNet } from "../shared/rules";
@@ -10,7 +10,7 @@ import { fmtDateTime, fmtTime, type Row } from "../shared/time";
 
 export default function Weighbridge() {
   const { D, reload, needDays, challan } = useData();
-  const [modal, setModal] = useState<"in" | "out" | null>(null);
+  const [modal, setModal] = useState<"in" | "out" | "bags" | null>(null);
   const [weighing, setWeighing] = useState<Row | null>(null);
   const [days, setDays] = useState("1");
   const { error, run } = useRun(reload);
@@ -28,6 +28,7 @@ export default function Weighbridge() {
       <PageHeader title="Weighbridge" sub="Every truck is weighed twice, in kg, as on the weighbridge display.">
         <Button onClick={() => setModal("in")}>Truck in</Button>
         <Button kind="soft" onClick={() => setModal("out")}>Truck out (sale)</Button>
+        <Button kind="ghost" onClick={() => setModal("bags")}>Count pellet bags</Button>
       </PageHeader>
       <ErrorText text={error} />
 
@@ -81,6 +82,7 @@ export default function Weighbridge() {
 
       {modal === "in" ? <TruckInModal onClose={() => setModal(null)} onSaved={reload} /> : null}
       {modal === "out" ? <TruckOutModal suggestion={nextChallan(D, challan)} onClose={() => setModal(null)} onSaved={reload} /> : null}
+      {modal === "bags" ? <BagCountModal onClose={() => setModal(null)} onSaved={reload} /> : null}
       {weighing ? <WeighOutModal ticket={weighing} onClose={() => setWeighing(null)} onSaved={reload} /> : null}
     </div>
   );
@@ -196,6 +198,36 @@ function TruckOutModal({ suggestion, onClose, onSaved }: { suggestion: string; o
           <Button disabled={busy} onClick={async () => { if (await run(() => truckOut(D, session!.person.id, f))) onClose(); }}>Save truck out</Button>
         </div>
       </div>
+    </Modal>
+  );
+}
+
+function BagCountModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { D } = useData();
+  const { session } = useAuth();
+  const pellet = D.material.find((m) => m.kind !== "Raw" && m.bag_kg != null);
+  const [bags, setBags] = useState("");
+  const [bagKg, setBagKg] = useState(pellet?.bag_kg ? String(num(pellet.bag_kg)) : "25");
+  const { busy, error, run } = useRun(onSaved);
+  return (
+    <Modal title="Pellet bag count" onClose={onClose}>
+      {!pellet ? <p className="text-sm text-slate-600">No pellet product is set up.</p> : (
+        <>
+          <p className="mb-3 text-sm text-slate-600">Bags counted into the store since {fmtDateTime(lastBagCountTo(D, pellet.id))}.</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Bags" value={bags} onChange={(v) => setBags(v.replace(/\D/g, ""))} />
+            <Field label="kg per bag" value={bagKg} onChange={setBagKg} />
+          </div>
+          {bags ? <p className="mt-2 text-lg font-bold">{kgFmt(Number(bags) * Number(bagKg || 0))} kg of {pellet.name}</p> : null}
+          <div className="mt-3 space-y-3">
+            <ErrorText text={error} />
+            <div className="flex justify-end gap-2">
+              <Button kind="ghost" onClick={onClose}>Cancel</Button>
+              <Button disabled={busy} onClick={async () => { if (await run(() => countBags(D, session!.person.id, pellet.id, bags, bagKg))) onClose(); }}>Save count</Button>
+            </div>
+          </div>
+        </>
+      )}
     </Modal>
   );
 }

@@ -2,7 +2,7 @@
 import { newId, push } from "./api";
 import type { Data } from "../shared/types";
 import { fillingBatch, batchTickets, busyPeople, machineOf, num, onSiteMap } from "../shared/rules";
-import { nowIso, shiftForArrival, type Row } from "../shared/time";
+import { nowIso, shiftForArrival, shiftWindow, type Row } from "../shared/time";
 
 export async function checkIn(D: Data, personIds: string[], me: string) {
   const w = shiftForArrival(D.shift);
@@ -118,7 +118,23 @@ export async function weighOut(ticket: Row, secondKg: string, me: string) {
   return net;
 }
 
-export const stopFilling = (batchId: string) => push([{ table: "yard_batch", data: { id: batchId, closed_at: nowIso() } }]);
+/** Pellet bags counted into the store since the last count (or the start of this shift). */
+export const lastBagCountTo = (D: Data, productId: string) =>
+  D.bag_count.filter((b) => b.product_id === productId).map((b) => b.period_to as string).sort().pop()
+  ?? shiftWindow(D.shift)?.start.toISOString()
+  ?? new Date(Date.now() - 6 * 3_600_000).toISOString();
+
+export async function countBags(D: Data, me: string, productId: string, bagsText: string, kgPerBag: string) {
+  const bags = Number(bagsText);
+  if (!bagsText.trim() || !Number.isInteger(bags) || bags <= 0) throw new Error("Enter the number of bags");
+  const kg = Number(kgPerBag);
+  if (!(kg > 0)) throw new Error("Enter kg per bag");
+  const now = nowIso();
+  await push([{ table: "bag_count", data: { id: newId(), product_id: productId, period_from: lastBagCountTo(D, productId), period_to: now, bags, kg_per_bag: kg, entered_by: me, entered_at: now } }]);
+  return bags * kg;
+}
+
+export const stopFilling =(batchId: string) => push([{ table: "yard_batch", data: { id: batchId, closed_at: nowIso() } }]);
 
 export const takeJob = (jobId: string, me: string) => push([{ table: "maintenance_job", data: { id: jobId, fitter_id: me, started_at: nowIso() } }]);
 
