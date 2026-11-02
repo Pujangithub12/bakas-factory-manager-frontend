@@ -21,7 +21,7 @@ if (!from) {
 const to = path.join(__dirname, "..", "src", "shared");
 fs.mkdirSync(to, { recursive: true });
 const banner = "// COPIED from mobile/src by scripts/copy-shared.cjs. Do not edit here.\n";
-for (const f of ["rules.ts", "time.ts"]) {
+for (const f of ["rules.ts", "time.ts", "money.ts", "vehicles.ts", "plan.ts"]) {
   let t = fs.readFileSync(path.join(from, f), "utf8");
   t = t.replace('from "./store"', 'from "./types"');
   fs.writeFileSync(path.join(to, f), banner + t);
