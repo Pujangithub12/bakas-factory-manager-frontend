@@ -19,6 +19,9 @@ const TABLES = [
   "person", "person_role", "operator_machine", "shift", "attendance", "shift_in_charge", "machine", "stop_reason", "log_field", "machine_run",
   "run_helper", "prestart_answer", "run_bypass", "downtime", "log_reading", "greasing_check", "bag_count", "maintenance_job", "material",
   "supplier", "buyer", "yard", "yard_batch", "weigh_ticket", "opening_stock",
+  "vehicle", "driver_vehicle", "vehicle_session", "diesel_fill", "hour_meter_reading", "pm_task", "pm_done", "phone_screen", "visitor", "store_item", "store_movement",
+  "purchase_request", "purchase_request_line", "power_reading", "lab_test", "sales_bill", "payment", "raw_price", "sale_price", "product_vat", "moisture_standard",
+  "daily_wage", "nea_tariff", "setting",
 ];
 const EMPTY: Data = Object.fromEntries(TABLES.map((t) => [t, []]));
 
