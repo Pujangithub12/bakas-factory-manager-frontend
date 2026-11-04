@@ -10,6 +10,12 @@ const candidates = [
   path.join(__dirname, "..", "..", "bakas-factory-manager-mobile", "src"),
 ].filter(Boolean);
 const from = candidates.find((d) => fs.existsSync(path.join(d, "rules.ts")));
+const to = path.join(__dirname, "..", "src", "shared");
+if (!from && fs.existsSync(path.join(to, "rules.ts"))) {
+  // A host that clones only this repo (Vercel) has no mobile folder: build with the copy that is committed.
+  console.log("mobile app not found; using the committed src/shared");
+  process.exit(0);
+}
 if (!from) {
   console.error(
     "Could not find the mobile app's src/rules.ts. Looked in:\n  " +
@@ -18,7 +24,6 @@ if (!from) {
   );
   process.exit(1);
 }
-const to = path.join(__dirname, "..", "src", "shared");
 fs.mkdirSync(to, { recursive: true });
 const banner = "// COPIED from mobile/src by scripts/copy-shared.cjs. Do not edit here.\n";
 for (const f of ["rules.ts", "time.ts", "money.ts", "vehicles.ts", "plan.ts"]) {
