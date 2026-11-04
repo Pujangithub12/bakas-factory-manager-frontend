@@ -9,7 +9,7 @@ type Ctx = {
   /** Sign in as a role with a PIN: the person is the one holding that role whose PIN it is. */
   signInRole: (role: string, pin: string) => Promise<void>;
   /** First run: create the one Owner and sign in. */
-  setupOwner: (fullName: string, pin: string) => Promise<void>;
+  setupOwner: (fullName: string, pin: string, email?: string) => Promise<void>;
   signOut: () => void;
 };
 
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   const signIn = useCallback(async (personId: string, pin: string) => start(await api<Login>("/auth/login", { body: { person_id: personId, pin } })), [start]);
   const signInRole = useCallback(async (role: string, pin: string) => start(await api<Login>("/auth/login", { body: { role, pin } })), [start]);
-  const setupOwner = useCallback(async (fullName: string, pin: string) => start(await api<Login>("/auth/setup", { body: { full_name: fullName, pin } })), [start]);
+  const setupOwner = useCallback(async (fullName: string, pin: string, email?: string) => start(await api<Login>("/auth/setup", { body: { full_name: fullName, pin, ...(email ? { email } : {}) } })), [start]);
 
   const setRoles = useCallback((roles: string[]) => {
     setSession((s) => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useData } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { api, newId, push } from "../lib/api";
@@ -88,6 +88,17 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
   const canEditPerson = !person || canManage(me, myRoles, person.id, had);
   const grantable = grantableRoles(myRoles);
   const [f, setF] = useState({ name: person?.full_name ?? "", mobile: person?.mobile ?? "", address: person?.address ?? "", idNo: person?.id_no ?? "" });
+  // The email used to reset the PIN. It is not in the synced data, so it is asked for separately.
+  const [email, setEmail] = useState("");
+  const [email0, setEmail0] = useState("");
+  useEffect(() => {
+    if (!person) return;
+    api<{ id: string; email: string }[]>("/people/emails").then((rows) => {
+      const e = rows.find((x) => x.id === person.id)?.email ?? "";
+      setEmail(e);
+      setEmail0(e);
+    }).catch(() => {});
+  }, [person?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [roles, setRoles] = useState<string[]>(had);
   const [pin, setPin] = useState("");
   const { busy, error, run } = useRun(onSaved);
@@ -99,6 +110,7 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
       if (!/^\d{10}$/.test(f.mobile)) throw new Error("Mobile must be 10 digits");
       if (!person && roles.length === 0) throw new Error("Give the user at least one role");
       if (pin && !/^\d{6}$/.test(pin)) throw new Error("PIN must be 6 digits");
+      if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("That does not look like an email address");
       const id = person?.id ?? newId();
       const now = new Date().toISOString();
       const ops: { table: string; op?: "upsert" | "delete"; data: Row }[] = [{
@@ -111,6 +123,7 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
       for (const r of had) if (!roles.includes(r) && grantable.includes(r)) ops.push({ table: "person_role", op: "delete", data: { person_id: id, role: r } });
       await push(ops, true);
       if (pin) await api(`/people/${id}/pin`, { body: { pin } });
+      if (email.trim().toLowerCase() !== email0) await api(`/people/${id}/email`, { body: { email: email.trim().toLowerCase() } });
       onClose();
     });
 
@@ -123,6 +136,7 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
         <Field label="Mobile (10 digits)" value={f.mobile} onChange={(v) => setF((x) => ({ ...x, mobile: v.replace(/\D/g, "").slice(0, 10) }))} disabled={!canEditPerson} />
         <Field label="Address" value={f.address} onChange={(v) => setF((x) => ({ ...x, address: v }))} disabled={!canEditPerson} />
         <Field label="ID no." value={f.idNo} onChange={(v) => setF((x) => ({ ...x, idNo: v }))} disabled={!canEditPerson} />
+        <Field label="Email (for PIN reset)" value={email} onChange={setEmail} disabled={!canEditPerson} hint="Optional. Only used to email a PIN reset link." />
       </div>
 
       <div className="mt-4">
