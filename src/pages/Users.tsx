@@ -107,7 +107,7 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
     run(async () => {
       const name = f.name.trim().replace(/\s+/g, " ");
       if (!name) throw new Error("Enter the name");
-      if (!/^\d{10}$/.test(f.mobile)) throw new Error("Mobile must be 10 digits");
+      if (f.mobile && !/^\d{10}$/.test(f.mobile)) throw new Error("Mobile must be 10 digits, or leave it empty");
       if (!person && roles.length === 0) throw new Error("Give the user at least one role");
       if (pin && !/^\d{6}$/.test(pin)) throw new Error("PIN must be 6 digits");
       if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("That does not look like an email address");
@@ -115,7 +115,7 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
       const now = new Date().toISOString();
       const ops: { table: string; op?: "upsert" | "delete"; data: Row }[] = [{
         table: "person",
-        data: { id, full_name: name, mobile: f.mobile, address: f.address.trim() || null, id_no: f.idNo.trim() || null,
+        data: { id, full_name: name, mobile: f.mobile || null, address: f.address.trim() || null, id_no: f.idNo.trim() || null,
           ...(person ? {} : { active: true, checked: true, registered_by: me, registered_at: now, checked_by: me, checked_at: now }) },
       }];
       // Only the roles that changed, and only ones this person is allowed to change.
@@ -133,7 +133,7 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
     <Modal title={person ? (canEditPerson ? `Edit ${person.full_name}` : person.full_name) : "Add a user"} onClose={onClose} wide>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Name as on the ID" value={f.name} onChange={(v) => setF((x) => ({ ...x, name: v }))} disabled={!canEditPerson} />
-        <Field label="Mobile (10 digits)" value={f.mobile} onChange={(v) => setF((x) => ({ ...x, mobile: v.replace(/\D/g, "").slice(0, 10) }))} disabled={!canEditPerson} />
+        <Field label="Mobile (10 digits)" hint="Optional." value={f.mobile} onChange={(v) => setF((x) => ({ ...x, mobile: v.replace(/\D/g, "").slice(0, 10) }))} disabled={!canEditPerson} />
         <Field label="Address" value={f.address} onChange={(v) => setF((x) => ({ ...x, address: v }))} disabled={!canEditPerson} />
         <Field label="ID no." value={f.idNo} onChange={(v) => setF((x) => ({ ...x, idNo: v }))} disabled={!canEditPerson} />
         <Field label="Email (for PIN reset)" value={email} onChange={setEmail} disabled={!canEditPerson} hint="Optional. Only used to email a PIN reset link." />
