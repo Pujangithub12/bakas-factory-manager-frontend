@@ -2,15 +2,13 @@
 import { newId, push } from "./api";
 import type { Data } from "../shared/types";
 import { fillingBatch, batchTickets, busyPeople, machineOf, num, onSiteMap } from "../shared/rules";
-import { nowIso, shiftForArrival, shiftWindow, type Row } from "../shared/time";
+import { gateShift, nowIso, shiftWindow, type Row } from "../shared/time";
 
 export async function checkIn(D: Data, personIds: string[], me: string) {
-  const w = shiftForArrival(D.shift);
-  if (!w) throw new Error("No shifts are set up yet.");
   const site = onSiteMap(D);
   const ops = personIds.filter((id) => !site.has(id)).map((id) => ({
     table: "attendance",
-    data: { id: newId(), person_id: id, shift_id: w.shift.id, shift_start: w.start.toISOString(), gate_in: nowIso(), gate_out: null, gate_by: me, on_duty_at: null, on_duty_by: null },
+    data: { id: newId(), person_id: id, ...gateShift(D.shift), gate_in: nowIso(), gate_out: null, gate_by: me, on_duty_at: null, on_duty_by: null },
   }));
   if (ops.length) await push(ops);
 }
@@ -39,14 +37,12 @@ export async function registerPerson(D: Data, me: string, mgmt: boolean, f: { na
   if (!f.role) throw new Error("Choose what the person works as");
   if (D.person.some((p) => p.full_name.trim().toLowerCase() === name.toLowerCase())) throw new Error("A person with this name is already registered.");
   if (D.person.some((p) => p.mobile === f.mobile)) throw new Error("This mobile number is already registered.");
-  const w = shiftForArrival(D.shift);
-  if (!w) throw new Error("No shifts are set up yet.");
   const id = newId();
   const now = nowIso();
   await push([
     { table: "person", data: { id, full_name: name, mobile: f.mobile, address: f.address.trim(), id_no: f.idNo.trim() || null, active: true, checked: mgmt, registered_by: me, registered_at: now, checked_by: mgmt ? me : null, checked_at: mgmt ? now : null } },
     { table: "person_role", data: { person_id: id, role: f.role, is_main: true } },
-    { table: "attendance", data: { id: newId(), person_id: id, shift_id: w.shift.id, shift_start: w.start.toISOString(), gate_in: now, gate_out: null, gate_by: me, on_duty_at: null, on_duty_by: null } },
+    { table: "attendance", data: { id: newId(), person_id: id, ...gateShift(D.shift), gate_in: now, gate_out: null, gate_by: me, on_duty_at: null, on_duty_by: null } },
   ]);
 }
 
