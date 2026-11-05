@@ -7,7 +7,6 @@ import { fmtTime } from "./shared/time";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Machines from "./pages/Machines";
-import LogSheets from "./pages/LogSheets";
 import Weighbridge from "./pages/Weighbridge";
 import Yards from "./pages/Yards";
 import Gate from "./pages/Gate";
@@ -17,7 +16,6 @@ import Setup from "./pages/Setup";
 import Users from "./pages/Users";
 import Money from "./pages/Money";
 import MoneyEntry from "./pages/MoneyEntry";
-import Bills from "./pages/Bills";
 import Prices from "./pages/Prices";
 import Lab from "./pages/Lab";
 import Electricity from "./pages/Electricity";
@@ -25,22 +23,18 @@ import Alerts from "./pages/Alerts";
 import Vehicles from "./pages/Vehicles";
 import PhoneApp from "./pages/PhoneApp";
 import Store from "./pages/Store";
-import PurchaseRequests from "./pages/PurchaseRequests";
-import MaintenancePlan from "./pages/MaintenancePlan";
 import Planning from "./pages/Planning";
 
 const MGMT = ["Owner", "Manager", "Supervisor"];
 const PAGES = [
   { path: "/dashboard", label: "Dashboard", roles: ["Owner", "Manager"], el: <Dashboard /> },
   { path: "/machines", label: "Machines", roles: MGMT, el: <Machines /> },
-  { path: "/log-sheets", label: "Log sheets", roles: MGMT, el: <LogSheets /> },
   { path: "/weighbridge", label: "Weighbridge", roles: ["Weighbridge", "Owner", "Manager"], el: <Weighbridge /> },
   { path: "/yards", label: "Yards & batches", roles: MGMT, el: <Yards /> },
   { path: "/gate", label: "Gate register", roles: ["Security", ...MGMT], el: <Gate /> },
   { path: "/crew", label: "Shift & crew", roles: MGMT, el: <Crew /> },
   { path: "/jobs", label: "Maintenance jobs", roles: ["Fitter", ...MGMT], el: <Jobs /> },
   { path: "/money", label: "Money", roles: ["Owner"], el: <Money /> },
-  { path: "/bills", label: "Sales bills", roles: ["Owner"], el: <Bills /> },
   { path: "/money-entry", label: "Money entry", roles: ["Owner", "Manager"], el: <MoneyEntry /> },
   { path: "/prices", label: "Prices and rates", roles: ["Owner"], el: <Prices /> },
   { path: "/lab", label: "Lab", roles: ["Weighbridge", "Owner", "Manager", "Supervisor"], el: <Lab /> },
@@ -49,8 +43,6 @@ const PAGES = [
   { path: "/vehicles", label: "Vehicles & fuel", roles: MGMT, el: <Vehicles /> },
   { path: "/phone-app", label: "Phone app", roles: ["Owner", "Manager"], el: <PhoneApp /> },
   { path: "/store", label: "Store", roles: ["Store", "Fitter", "Owner", "Manager", "Supervisor"], el: <Store /> },
-  { path: "/purchase-requests", label: "Purchase requests", roles: ["Owner", "Manager", "Supervisor", "Operator", "Fitter", "Store", "Security", "Weighbridge", "Driver"], el: <PurchaseRequests /> },
-  { path: "/maintenance-plan", label: "Maintenance plan", roles: ["Owner", "Manager", "Supervisor", "Fitter"], el: <MaintenancePlan /> },
   { path: "/planning", label: "Planning", roles: MGMT, el: <Planning /> },
   { path: "/users", label: "Users & roles", roles: ["Owner", "Manager"], el: <Users /> },
   { path: "/setup", label: "Setup lists", roles: ["Owner", "Manager"], el: <Setup /> },

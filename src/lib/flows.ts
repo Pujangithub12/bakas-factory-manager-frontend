@@ -49,7 +49,7 @@ export async function registerPerson(D: Data, me: string, mgmt: boolean, f: { na
 export const confirmWorker = (personId: string, me: string) => push([{ table: "person", data: { id: personId, checked: true, checked_by: me, checked_at: nowIso() } }]);
 export const markOnDuty = (attId: string, me: string) => push([{ table: "attendance", data: { id: attId, on_duty_at: nowIso(), on_duty_by: me } }]);
 
-export const setInCharge = (shiftStartIso: string, shiftId: string, personId: string, me: string) =>
+export const setInCharge = (shiftStartIso: string, shiftId: string | null, personId: string, me: string) =>
   push([{ table: "shift_in_charge", data: { shift_start: shiftStartIso, shift_id: shiftId, person_id: personId, set_by: me, set_at: nowIso() } }]);
 
 export const toggleOperatorMachine = (personId: string, machineId: string, on: boolean) =>

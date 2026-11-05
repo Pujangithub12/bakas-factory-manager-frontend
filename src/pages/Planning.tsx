@@ -89,7 +89,6 @@ export default function Planning() {
         <Card>
           <div className="mb-3 flex items-start justify-between gap-2">
             <div><h2 className="font-semibold">Maintenance in the next 7 days</h2><p className="text-sm text-slate-500">From the hour meters and last week’s running hours.</p></div>
-            <Link to="/maintenance-plan"><Button small kind="ghost">Plan</Button></Link>
           </div>
           {soonPm.length ? (
             <>
@@ -107,7 +106,6 @@ export default function Planning() {
             <div key={i.id} className="flex items-center gap-3 border-t border-slate-100 py-2 text-sm first:border-t-0">
               <span className="w-20 shrink-0 text-xs text-slate-500">{i.code}</span>
               <span className="min-w-0 flex-1">{i.name}<small className="block text-slate-500">{num(i.qty)} {i.unit} in store, keep {num(i.min_qty)}</small></span>
-              <Link to="/purchase-requests"><Button small kind="ghost">Request</Button></Link>
             </div>
           )) : <p className="py-6 text-center text-sm text-slate-500">Everything is above its minimum.</p>}
         </Card>

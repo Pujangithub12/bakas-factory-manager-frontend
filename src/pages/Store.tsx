@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useData } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { Button, Field, Modal, PageHeader, Select, Table, Td } from "../components/ui";
@@ -49,7 +48,7 @@ export default function Store() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Fig label="Tools out now" value={out.length} />
         <Fig label="Not returned in time" value={late.length} alert={late.length > 0} />
-        <Fig label="Below minimum" value={low.length} alert={low.length > 0} note={low.length ? <Link className="font-semibold text-brand-700 underline" to="/purchase-requests">Purchase requests</Link> : "all stocked"} />
+        <Fig label="Below minimum" value={low.length} alert={low.length > 0} note={low.length ? "needs reordering" : "all stocked"} />
         {money ? <Fig label="Stock value" value={rsK(stockValue)} note="owner only" /> : null}
       </div>
 
