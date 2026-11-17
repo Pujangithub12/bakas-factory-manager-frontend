@@ -38,6 +38,15 @@ const ENTITIES: Entity[] = [
     ],
   },
   {
+    key: "vehicles", title: "Vehicles", table: "vehicle", columns: ["name", "type", "reg_no", "meter"],
+    fields: [
+      { key: "name", label: "Name", kind: "text", required: true, hint: "Vehicles whose diesel is tracked. Drivers are ticked per vehicle on Shift & crew." },
+      { key: "type", label: "Type", kind: "select", options: ["JCB", "Tractor", "Loader", "Truck", "Other"], required: true },
+      { key: "reg_no", label: "Registration", kind: "text" },
+      { key: "meter", label: "Meter (hours = hour meter, km = odometer)", kind: "select", options: ["hours", "km"], required: true },
+    ],
+  },
+  {
     key: "yards", title: "Yards", table: "yard", columns: ["name", "letter", "holds_trucks"],
     fields: [
       { key: "name", label: "Name", kind: "text", required: true },
