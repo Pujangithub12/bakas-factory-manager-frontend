@@ -1,3 +1,4 @@
+
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -73,7 +74,7 @@ export default function Login() {
           <button onClick={() => { setPick(null); setMode("pick"); }} className="flex items-center gap-1 text-lg font-semibold text-slate-800">‹ Back</button>
         </div>
         <div>
-          <h1 className="font-bold">{pick}</h1>
+          <h1 className="font-bold">{pick === "Fitter" ? "Maintenance" : pick}</h1>
           <p className="mt-1 text-lg text-slate-500">Who are you?</p>
         </div>
         <div className="space-y-3">
@@ -103,9 +104,9 @@ export default function Login() {
           const empty = counts.length > 0 && (counts.find((c) => c.role === role)?.count ?? 0) === 0;
           return (
             <button key={role} onClick={() => { setPick(role); setMode("people"); refreshPeople(); }} className={`flex w-full items-center gap-4 rounded-2xl border border-[#d9d5cc] bg-card p-4 text-left shadow-sm transition hover:border-brand-600 ${empty ? "opacity-55" : ""}`}>
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-100 font-display text-xl font-bold text-brand-700">{role[0]}</span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-100 font-display text-xl font-bold text-brand-700">{role === "Fitter" ? "M" : role[0]}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-lg font-semibold">{role}</span>
+                <span className="block text-lg font-semibold">{role === "Fitter" ? "Maintenance" : role}</span>
                 <span className="block text-sm text-slate-500">{ROLE_BLURB[role]}</span>
               </span>
               {empty ? <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">No one yet</span> : null}
@@ -119,6 +120,7 @@ export default function Login() {
     </Shell>
   );
 }
+
 /** Back, the person's initial, their name, six dots and a number pad. */
 function PinScreen({ name, title, onBack, onPin }: { name: string; title?: string; onBack?: () => void; onPin: (pin: string) => Promise<string | void> }) {
   return (
