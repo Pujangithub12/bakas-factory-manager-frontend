@@ -34,3 +34,7 @@ export function canManage(actorId: string, actor: string[], targetId: string, ta
   const a = rank(actor);
   return a === 3 || a > rank(target);
 }
+/** Display-friendly role names. Internal role identifiers remain unchanged. */
+export function displayRole(role: string): string {
+  return role === "Fitter" ? "Maintenance" : role;
+}
