@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { checkIn, checkOut, registerPerson } from "../lib/flows";
 import { newId, push } from "../lib/api";
 import { Badge, Button, ErrorText, Field, Modal, PageHeader, Select, Table, Td, useRun } from "../components/ui";
-import { busyPeople, machineOf, mainRole, nextPassNo, onSiteMap, personName, rolesOf } from "../shared/rules";
+import { GATE_DELAY_MIN, busyPeople, machineOf, mainRole, nextPassNo, onSiteMap, pendingMap, personName, rolesOf } from "../shared/rules";
 import { fmtDateTime, fmtTime, nowIso, productionDayStart } from "../shared/time";
 
 import { ROLE_LIST, grantableRoles } from "../lib/roles";
@@ -19,7 +19,18 @@ export default function Gate() {
   const [registering, setRegistering] = useState(false);
   const { busy, error, run } = useRun(reload);
 
-  const site = useMemo(() => onSiteMap(D), [D]);
+  // Ticks every second so a person waiting to be checked in counts down and moves to In by itself.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  const site = useMemo(() => onSiteMap(D, now), [D, now]);
+  const pending = useMemo(() => pendingMap(D, now), [D, now]);
+  const left = (gateIn: string) => {
+    const s = Math.max(0, Math.ceil((new Date(gateIn).getTime() + GATE_DELAY_MIN * 60_000 - now) / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  };
   const running = useMemo(() => busyPeople(D), [D]);
   const list = D.person
     .filter((p) => p.active)
@@ -49,6 +60,7 @@ export default function Gate() {
       <Table head={["", "Name", "Mobile", "Works as", "Status", ""]} empty={q ? "No one found. Use Register new person." : "No people yet."}>
         {list.map((p) => {
           const a = site.get(p.id);
+          const w = pending.get(p.id);
           const r = running.get(p.id);
           return (
             <tr key={p.id}>
@@ -56,12 +68,12 @@ export default function Gate() {
               <Td className="font-semibold">{p.full_name}</Td><Td>{p.mobile ?? "-"}</Td><Td>{mainRole(D, p.id) ?? "-"}</Td>
               <Td>
                 <div className="flex flex-wrap gap-1">
-                  {a ? <Badge tone="good">In {fmtTime(a.gate_in)}</Badge> : <Badge>Out</Badge>}
+                  {a ? <Badge tone="good">In {fmtTime(a.gate_in)}</Badge> : w ? <Badge tone="warn">Checking in {left(w.gate_in)}</Badge> : <Badge>Out</Badge>}
                   {!p.checked ? <Badge tone="info">New</Badge> : null}
                   {r ? <Badge tone="warn">Running {machineOf(D, r.machine_id)?.tag}</Badge> : null}
                 </div>
               </Td>
-              <Td>{a ? <Button small kind="ghost" disabled={busy} onClick={() => run(() => checkOut(D, [p.id]))}>Out</Button> : <Button small disabled={busy} onClick={() => run(() => checkIn(D, [p.id], me))}>In</Button>}</Td>
+              <Td>{a || w ? <Button small kind="ghost" disabled={busy} onClick={() => run(() => checkOut(D, [p.id]))}>{w ? "Cancel" : "Out"}</Button> : <Button small disabled={busy} onClick={() => run(() => checkIn(D, [p.id], me))}>In</Button>}</Td>
             </tr>
           );
         })}

@@ -1,12 +1,13 @@
 // The same entries the phone makes, with the same rules, for the laptop screens.
 import { newId, push } from "./api";
 import type { Data } from "../shared/types";
-import { fillingBatch, batchTickets, busyPeople, machineOf, num, onSiteMap } from "../shared/rules";
+import { fillingBatch, batchTickets, busyPeople, machineOf, num, onSiteMap, pendingMap } from "../shared/rules";
 import { gateShift, nowIso, shiftWindow, type Row } from "../shared/time";
 
 export async function checkIn(D: Data, personIds: string[], me: string) {
   const site = onSiteMap(D);
-  const ops = personIds.filter((id) => !site.has(id)).map((id) => ({
+  const pending = pendingMap(D); // checked in less than 2 minutes ago
+  const ops = personIds.filter((id) => !site.has(id) && !pending.has(id)).map((id) => ({
     table: "attendance",
     data: { id: newId(), person_id: id, ...gateShift(D.shift), gate_in: nowIso(), gate_out: null, gate_by: me, on_duty_at: null, on_duty_by: null },
   }));
@@ -15,11 +16,13 @@ export async function checkIn(D: Data, personIds: string[], me: string) {
 
 export async function checkOut(D: Data, personIds: string[]) {
   const site = onSiteMap(D);
+  const pending = pendingMap(D);
   const busy = busyPeople(D);
   const blocked: string[] = [];
   const ops = [];
   for (const id of personIds) {
-    const a = site.get(id);
+    // Someone still waiting to be checked in can be taken out too (tapped In by mistake).
+    const a = site.get(id) ?? pending.get(id);
     if (!a) continue;
     const r = busy.get(id);
     if (r) { blocked.push(`${D.person.find((p) => p.id === id)?.full_name} (${machineOf(D, r.machine_id)?.tag})`); continue; }
