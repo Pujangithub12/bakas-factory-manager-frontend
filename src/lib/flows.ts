@@ -1,13 +1,12 @@
 // The same entries the phone makes, with the same rules, for the laptop screens.
 import { newId, push } from "./api";
 import type { Data } from "../shared/types";
-import { fillingBatch, batchTickets, busyPeople, machineOf, num, onSiteMap, pendingMap } from "../shared/rules";
+import { fillingBatch, batchTickets, busyPeople, gateCancelable, machineOf, num, onSiteMap } from "../shared/rules";
 import { gateShift, nowIso, shiftWindow, type Row } from "../shared/time";
 
 export async function checkIn(D: Data, personIds: string[], me: string) {
   const site = onSiteMap(D);
-  const pending = pendingMap(D); // checked in less than 2 minutes ago
-  const ops = personIds.filter((id) => !site.has(id) && !pending.has(id)).map((id) => ({
+  const ops = personIds.filter((id) => !site.has(id)).map((id) => ({
     table: "attendance",
     data: { id: newId(), person_id: id, ...gateShift(D.shift), gate_in: nowIso(), gate_out: null, gate_by: me, on_duty_at: null, on_duty_by: null },
   }));
@@ -16,17 +15,17 @@ export async function checkIn(D: Data, personIds: string[], me: string) {
 
 export async function checkOut(D: Data, personIds: string[]) {
   const site = onSiteMap(D);
-  const pending = pendingMap(D);
   const busy = busyPeople(D);
   const blocked: string[] = [];
   const ops = [];
   for (const id of personIds) {
-    // Someone still waiting to be checked in can be taken out too (tapped In by mistake).
-    const a = site.get(id) ?? pending.get(id);
+    const a = site.get(id);
     if (!a) continue;
     const r = busy.get(id);
     if (r) { blocked.push(`${D.person.find((p) => p.id === id)?.full_name} (${machineOf(D, r.machine_id)?.tag})`); continue; }
-    ops.push({ table: "attendance", data: { id: a.id, gate_out: nowIso() } });
+    // Checked out within 3 minutes of checking in (a mistaken tap): the check-in is removed and no visit is logged.
+    if (gateCancelable(a)) ops.push({ table: "attendance", op: "delete" as const, data: { id: a.id } });
+    else ops.push({ table: "attendance", data: { id: a.id, gate_out: nowIso() } });
   }
   if (ops.length) await push(ops);
   if (blocked.length) throw new Error(`${blocked.join(", ")} cannot be checked out until the run is stopped.`);
