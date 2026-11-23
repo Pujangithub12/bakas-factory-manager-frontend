@@ -51,6 +51,11 @@ export async function registerPerson(D: Data, me: string, mgmt: boolean, f: { na
 export const confirmWorker = (personId: string, me: string) => push([{ table: "person", data: { id: personId, checked: true, checked_by: me, checked_at: nowIso() } }]);
 export const markOnDuty = (attId: string, me: string) => push([{ table: "attendance", data: { id: attId, on_duty_at: nowIso(), on_duty_by: me } }]);
 
+/** The attendance sheet. Removing a mark puts the day back to what the gate recorded. */
+export const saveMark = (personId: string, day: string, status: string, note: string, me: string) =>
+  push([{ table: "attendance_mark", data: { person_id: personId, day, status, note: note.trim() || null, marked_by: me, marked_at: nowIso() } }]);
+export const clearMark = (personId: string, day: string) => push([{ table: "attendance_mark", op: "delete", data: { person_id: personId, day } }]);
+
 export const setInCharge = (shiftStartIso: string, shiftId: string | null, personId: string, me: string) =>
   push([{ table: "shift_in_charge", data: { shift_start: shiftStartIso, shift_id: shiftId, person_id: personId, set_by: me, set_at: nowIso() } }]);
 

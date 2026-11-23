@@ -13,10 +13,12 @@ type Ctx = {
   reload: () => Promise<void>;
   /** Make sure at least this many days of history are loaded. */
   needDays: (n: number) => void;
+  /** How many days of history the last load brought. */
+  loadedDays: number;
 };
 
 const TABLES = [
-  "person", "person_role", "operator_machine", "shift", "attendance", "shift_in_charge", "machine", "stop_reason", "log_field", "machine_run",
+  "person", "person_role", "operator_machine", "shift", "attendance", "attendance_mark", "shift_in_charge", "machine", "stop_reason", "log_field", "machine_run",
   "run_helper", "prestart_answer", "run_bypass", "downtime", "log_reading", "greasing_check", "bag_count", "maintenance_job", "material",
   "supplier", "buyer", "yard", "yard_batch", "weigh_ticket", "opening_stock",
   "vehicle", "driver_vehicle", "vehicle_session", "diesel_fill", "hour_meter_reading", "pm_task", "pm_done", "phone_screen", "visitor", "store_item", "store_movement",
@@ -32,6 +34,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { session, setRoles } = useAuth();
   const [D, setD] = useState<Data>(EMPTY);
   const [days, setDays] = useState(3);
+  const [loadedDays, setLoadedDays] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
@@ -43,8 +46,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!session) return;
     setLoading(true);
     try {
-      const r = await api<{ tables: Data; me: { roles: string[] }; challan: Challan }>(`/sync/pull?days=${daysRef.current}`);
+      const asked = daysRef.current;
+      const r = await api<{ tables: Data; me: { roles: string[] }; challan: Challan }>(`/sync/pull?days=${asked}`);
       setD({ ...EMPTY, ...r.tables });
+      setLoadedDays(asked);
       setRoles(r.me.roles);
       setChallan(r.challan);
       setLoadedAt(new Date());
@@ -64,6 +69,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [session?.person.id, days, reload]);
 
   const needDays = useCallback((n: number) => setDays((d) => (n > d ? Math.min(400, n) : d)), []);
-  const value = useMemo(() => ({ D, loading, error, loadedAt, challan, reload, needDays }), [D, loading, error, loadedAt, challan, reload, needDays]);
+  const value = useMemo(() => ({ D, loading, error, loadedAt, challan, reload, needDays, loadedDays }), [D, loading, error, loadedAt, challan, reload, needDays, loadedDays]);
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;
 }

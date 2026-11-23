@@ -11,6 +11,7 @@ import Weighbridge from "./pages/Weighbridge";
 import Yards from "./pages/Yards";
 import Gate from "./pages/Gate";
 import Crew from "./pages/Crew";
+import Attendance from "./pages/Attendance";
 import Jobs from "./pages/Jobs";
 import Setup from "./pages/Setup";
 import Users from "./pages/Users";
@@ -33,6 +34,7 @@ const PAGES = [
   { path: "/yards", label: "Yards & batches", roles: MGMT, el: <Yards /> },
   { path: "/gate", label: "Gate register", roles: ["Security", ...MGMT], el: <Gate /> },
   { path: "/crew", label: "Shift & crew", roles: MGMT, el: <Crew /> },
+  { path: "/attendance", label: "Attendance", roles: MGMT, el: <Attendance /> },
   { path: "/jobs", label: "Maintenance jobs", roles: ["Fitter", ...MGMT], el: <Jobs /> },
   { path: "/money", label: "Money", roles: ["Owner"], el: <Money /> },
   { path: "/money-entry", label: "Money entry", roles: ["Owner", "Manager"], el: <MoneyEntry /> },
