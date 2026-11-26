@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useData } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { api, newId, push } from "../lib/api";
 import { Badge, Button, Card, Check, ErrorText, Field, Modal, PageHeader, Table, Td, useRun } from "../components/ui";
-import { ROLE_BLURB, ROLE_LIST, canManage, grantableRoles, rank } from "../lib/roles";
+import { ROLE_BLURB, ROLE_LIST, SIGN_IN_ROLES, canManage, grantableRoles, rank } from "../lib/roles";
 import { rolesOf } from "../shared/rules";
 import type { Row } from "../shared/time";
 
@@ -20,6 +20,13 @@ export default function Users() {
   const [pinFor, setPinFor] = useState<Row | null>(null);
   const [showRemoved, setShowRemoved] = useState(false);
   const { busy, error, run } = useRun(reload);
+  // Who can sign in. PINs never leave the server, but the sign-in list names exactly the active people who have one.
+  const [withPin, setWithPin] = useState<Set<string> | null>(null);
+  const loadPins = useCallback(() => {
+    api<{ id: string }[]>("/auth/people").then((r) => setWithPin(new Set(r.map((p) => p.id)))).catch(() => {});
+  }, []);
+  useEffect(loadPins, [loadPins, D.person]);
+  const noPin = (p: Row) => !!withPin && p.active && !withPin.has(p.id) && rolesOf(D, p.id).some((r) => (SIGN_IN_ROLES as readonly string[]).includes(r));
 
   const list = D.person
     .filter((p) => showRemoved || p.active)
@@ -57,11 +64,16 @@ export default function Users() {
                   {roles.length === 0 ? <span className="text-slate-400">No role</span> : roles.map((r) => <Badge key={r} tone={roleTone(r)}>{r === "Manager" ? "Manager · admin" : r === "Owner" ? "Owner · super admin" : r}</Badge>)}
                 </div>
               </Td>
-              <Td>{p.active ? <Badge tone="good">Active</Badge> : <Badge>Removed</Badge>}</Td>
+              <Td>
+                <div className="flex flex-wrap gap-1">
+                  {p.active ? <Badge tone="good">Active</Badge> : <Badge>Removed</Badge>}
+                  {noPin(p) ? <Badge tone="warn">No PIN: cannot sign in</Badge> : null}
+                </div>
+              </Td>
               <Td>
                 <div className="flex flex-wrap gap-1">
                   <Button small kind="ghost" onClick={() => setEditing(p)}>{manage ? "Edit" : "View"}</Button>
-                  {manage ? <Button small kind="ghost" onClick={() => setPinFor(p)}>PIN</Button> : null}
+                  {manage ? <Button small kind={noPin(p) ? "primary" : "ghost"} onClick={() => setPinFor(p)}>{noPin(p) ? "Set PIN" : "PIN"}</Button> : null}
                   {p.active && manage && !mine && !isOwnerRow ? (
                     <Button small kind="ghost" disabled={busy} onClick={() => { if (window.confirm(`Remove ${p.full_name}? They can no longer sign in, and their old records stay.`)) run(() => push([{ table: "person", data: { id: p.id, active: false } }], true)); }}>Remove</Button>
                   ) : null}
@@ -73,8 +85,8 @@ export default function Users() {
         })}
       </Table>
 
-      {editing ? <UserEditor person={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={reload} /> : null}
-      {pinFor ? <PinModal person={pinFor} onClose={() => setPinFor(null)} /> : null}
+      {editing ? <UserEditor person={editing === "new" ? null : editing} onClose={() => { setEditing(null); loadPins(); }} onSaved={reload} /> : null}
+      {pinFor ? <PinModal person={pinFor} onClose={() => { setPinFor(null); loadPins(); }} /> : null}
     </div>
   );
 }
@@ -102,6 +114,8 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
   const [roles, setRoles] = useState<string[]>(had);
   const [pin, setPin] = useState("");
   const { busy, error, run } = useRun(onSaved);
+  // A new user whose details saved but whose PIN was refused: pressing Save again finishes that user instead of adding a second one.
+  const made = useRef<{ id: string; roles: string[] } | null>(null);
 
   const save = () =>
     run(async () => {
@@ -111,7 +125,8 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
       if (!person && roles.length === 0) throw new Error("Give the user at least one role");
       if (pin && !/^\d{6}$/.test(pin)) throw new Error("PIN must be 6 digits");
       if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("That does not look like an email address");
-      const id = person?.id ?? newId();
+      const id = person?.id ?? made.current?.id ?? newId();
+      const before: string[] = made.current?.roles ?? had;
       const now = new Date().toISOString();
       const ops: { table: string; op?: "upsert" | "delete"; data: Row }[] = [{
         table: "person",
@@ -119,10 +134,19 @@ function UserEditor({ person, onClose, onSaved }: { person: Row | null; onClose:
           ...(person ? {} : { active: true, checked: true, registered_by: me, registered_at: now, checked_by: me, checked_at: now }) },
       }];
       // Only the roles that changed, and only ones this person is allowed to change.
-      for (const r of roles) if (!had.includes(r) && grantable.includes(r)) ops.push({ table: "person_role", data: { person_id: id, role: r, is_main: had.length === 0 && ops.length === 1 } });
-      for (const r of had) if (!roles.includes(r) && grantable.includes(r)) ops.push({ table: "person_role", op: "delete", data: { person_id: id, role: r } });
+      for (const r of roles) if (!before.includes(r) && grantable.includes(r)) ops.push({ table: "person_role", data: { person_id: id, role: r, is_main: before.length === 0 && ops.length === 1 } });
+      for (const r of before) if (!roles.includes(r) && grantable.includes(r)) ops.push({ table: "person_role", op: "delete", data: { person_id: id, role: r } });
       await push(ops, true);
-      if (pin) await api(`/people/${id}/pin`, { body: { pin } });
+      if (!person) made.current = { id, roles };
+      if (pin) {
+        try {
+          await api(`/people/${id}/pin`, { body: { pin } });
+        } catch (e) {
+          await onSaved();
+          const why = e instanceof Error ? e.message : String(e);
+          throw new Error(`${name} was saved, but the PIN was not: ${why} Enter another PIN and press Save, or they cannot sign in.`);
+        }
+      }
       if (email.trim().toLowerCase() !== email0) await api(`/people/${id}/email`, { body: { email: email.trim().toLowerCase() } });
       onClose();
     });
