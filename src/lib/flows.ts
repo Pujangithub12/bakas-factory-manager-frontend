@@ -54,7 +54,13 @@ export const markOnDuty = (attId: string, me: string) => push([{ table: "attenda
 /** The attendance sheet. Removing a mark puts the day back to what the gate recorded. */
 export const saveMark = (personId: string, day: string, status: string, note: string, me: string) =>
   push([{ table: "attendance_mark", data: { person_id: personId, day, status, note: note.trim() || null, marked_by: me, marked_at: nowIso() } }]);
-export const clearMark = (personId: string, day: string) => push([{ table: "attendance_mark", op: "delete", data: { person_id: personId, day } }]);
+/** Marks several people Present for one day, in batches of 100. */
+export async function markAllPresent(personIds: string[], day: string, me: string) {
+  for (let i = 0; i < personIds.length; i += 100) {
+    await push(personIds.slice(i, i + 100).map((id) => ({ table: "attendance_mark", data: { person_id: id, day, status: "Present", note: null, marked_by: me, marked_at: nowIso() } })));
+  }
+}
+export const clearMark =(personId: string, day: string) => push([{ table: "attendance_mark", op: "delete", data: { person_id: personId, day } }]);
 
 export const setInCharge = (shiftStartIso: string, shiftId: string | null, personId: string, me: string) =>
   push([{ table: "shift_in_charge", data: { shift_start: shiftStartIso, shift_id: shiftId, person_id: personId, set_by: me, set_at: nowIso() } }]);

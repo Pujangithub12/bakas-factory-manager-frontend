@@ -1,9 +1,13 @@
+import type { ReactElement } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import { useData } from "./lib/data";
 import { cls } from "./lib/util";
 import { Button, Logo } from "./components/ui";
 import { fmtTime } from "./shared/time";
+import { attendanceAccess } from "./shared/rules";
+import { ROLE_LIST } from "./lib/roles";
+import type { Data } from "./shared/types";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Machines from "./pages/Machines";
@@ -27,14 +31,16 @@ import Store from "./pages/Store";
 import Planning from "./pages/Planning";
 
 const MGMT = ["Owner", "Manager", "Supervisor"];
-const PAGES = [
+type Page = { path: string; label: string; roles: readonly string[]; el: ReactElement; need?: (D: Data, id: string, roles: string[]) => boolean };
+const PAGES: Page[] = [
   { path: "/dashboard", label: "Dashboard", roles: ["Owner", "Manager"], el: <Dashboard /> },
   { path: "/machines", label: "Machines", roles: MGMT, el: <Machines /> },
   { path: "/weighbridge", label: "Weighbridge", roles: ["Weighbridge", "Owner", "Manager"], el: <Weighbridge /> },
   { path: "/yards", label: "Yards & batches", roles: MGMT, el: <Yards /> },
   { path: "/gate", label: "Gate register", roles: ["Security", ...MGMT], el: <Gate /> },
   { path: "/crew", label: "Shift & crew", roles: MGMT, el: <Crew /> },
-  { path: "/attendance", label: "Attendance", roles: MGMT, el: <Attendance /> },
+  // Anyone the Owner gives access to, whatever their role.
+  { path: "/attendance", label: "Attendance", roles: ROLE_LIST, el: <Attendance />, need: (D, id, roles) => attendanceAccess(D, id, roles) !== "none" },
   { path: "/jobs", label: "Maintenance jobs", roles: ["Fitter", ...MGMT], el: <Jobs /> },
   { path: "/money", label: "Money", roles: ["Owner"], el: <Money /> },
   { path: "/money-entry", label: "Money entry", roles: ["Owner", "Manager"], el: <MoneyEntry /> },
@@ -52,10 +58,10 @@ const PAGES = [
 
 export default function App() {
   const { session, signOut } = useAuth();
-  const { loadedAt, loading, error, reload } = useData();
+  const { D, loadedAt, loading, error, reload } = useData();
   if (!session) return <Login />;
 
-  const allowed = PAGES.filter((p) => p.roles.some((r) => session.roles.includes(r)));
+  const allowed = PAGES.filter((p) => p.roles.some((r) => session.roles.includes(r)) && (!p.need || p.need(D, session.person.id, session.roles)));
 
   return (
     <div className="flex min-h-screen bg-page text-slate-900">
