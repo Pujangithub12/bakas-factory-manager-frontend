@@ -15,6 +15,8 @@ type Ctx = {
   needDays: (n: number) => void;
   /** How many days of history the last load brought. */
   loadedDays: number;
+  /** Change the rows on screen straight away after a save, instead of loading everything again. */
+  patch: (table: string, change: (rows: Data[string]) => Data[string]) => void;
 };
 
 const TABLES = [
@@ -41,13 +43,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [challan, setChallan] = useState<Challan>({ last: null, prefix: null });
   const daysRef = useRef(days);
   daysRef.current = days;
+  // Bumped by every local change, so a load that started before it does not put old rows back.
+  const edits = useRef(0);
 
   const reload = useCallback(async () => {
     if (!session) return;
     setLoading(true);
     try {
       const asked = daysRef.current;
+      const before = edits.current;
       const r = await api<{ tables: Data; me: { roles: string[] }; challan: Challan }>(`/sync/pull?days=${asked}`);
+      // Something was saved while this was loading: these rows may be older than it, so load again.
+      if (edits.current !== before) { setTimeout(() => reloadRef.current(), 0); return; }
       setD({ ...EMPTY, ...r.tables });
       setLoadedDays(asked);
       setRoles(r.me.roles);
@@ -68,7 +75,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(t);
   }, [session?.person.id, days, reload]);
 
+  const patch = useCallback((table: string, change: (rows: Data[string]) => Data[string]) => {
+    edits.current++;
+    setD((d) => ({ ...d, [table]: change(d[table] ?? []) }));
+  }, []);
+
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
+
   const needDays = useCallback((n: number) => setDays((d) => (n > d ? Math.min(400, n) : d)), []);
-  const value = useMemo(() => ({ D, loading, error, loadedAt, challan, reload, needDays, loadedDays }), [D, loading, error, loadedAt, challan, reload, needDays, loadedDays]);
+  const value = useMemo(() => ({ D, loading, error, loadedAt, challan, reload, needDays, loadedDays, patch }), [D, loading, error, loadedAt, challan, reload, needDays, loadedDays, patch]);
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;
 }
