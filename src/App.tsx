@@ -16,6 +16,7 @@ import Yards from "./pages/Yards";
 import Gate from "./pages/Gate";
 import Crew from "./pages/Crew";
 import Attendance from "./pages/Attendance";
+import Locations from "./pages/Locations";
 import Jobs from "./pages/Jobs";
 import Setup from "./pages/Setup";
 import Users from "./pages/Users";
@@ -41,6 +42,7 @@ const PAGES: Page[] = [
   { path: "/crew", label: "Shift & crew", roles: MGMT, el: <Crew /> },
   // Anyone the Owner gives access to, whatever their role.
   { path: "/attendance", label: "Attendance", roles: ROLE_LIST, el: <Attendance />, need: (D, id, roles) => attendanceAccess(D, id, roles) !== "none" },
+  { path: "/locations", label: "Locations", roles: ["Owner"], el: <Locations /> },
   { path: "/jobs", label: "Maintenance jobs", roles: ["Fitter", ...MGMT], el: <Jobs /> },
   { path: "/money", label: "Money", roles: ["Owner"], el: <Money /> },
   { path: "/money-entry", label: "Money entry", roles: ["Owner", "Manager"], el: <MoneyEntry /> },
